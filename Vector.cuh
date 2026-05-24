@@ -4,9 +4,9 @@
 #include <cuda_runtime.h>
 
 struct Vector {
-  float x;
+  double x;
 
-  float y;
+  double y;
 
   __host__ __device__ Vector() {
     this->x = 0;

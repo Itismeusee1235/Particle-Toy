@@ -5,15 +5,14 @@
 
 const int W = 1000;
 const int H = 1000;
-const int N = 100000;
-const int CN = 5;
+const int N = 500000;
+const int CN = 4;
 const double gravFac = 30;
 const double e = 2;
 const double maxVel = 500;
 
-__global__ void updateVelocities(Particle* pars, Particle* centers, int len,
-    int cen_len, double deltaTime)
-{
+__global__ void updateVelocities(Particle *pars, Particle *centers, int len,
+                                 int cen_len, double deltaTime) {
 
   int i = threadIdx.x + blockDim.x * blockIdx.x;
   if (i >= len || i <= 0) {
@@ -26,13 +25,14 @@ __global__ void updateVelocities(Particle* pars, Particle* centers, int len,
     double dist = magnitude(pars[i].pos - centers[j].pos);
     if (dist <= 1e-6) {
       double angle = (i * 73 + j * 91) % 360; // Simple hash
-      double rad = angle * (M_PI / 180.0); // degrees to radians
+      double rad = angle * (M_PI / 180.0);    // degrees to radians
       Vector dir(cos(rad), sin(rad));
       net_force -= dir * 70.0;
       continue;
     }
 
-    double force = gravFac * dist * centers[j].mass / powf(dist * dist + e, 1.5f);
+    double force =
+        gravFac * dist * centers[j].mass / powf(dist * dist + e, 1.5f);
 
     Vector dir = normalize(pars[i].pos - centers[j].pos);
     net_force += dir * force;
@@ -46,8 +46,7 @@ __global__ void updateVelocities(Particle* pars, Particle* centers, int len,
   }
 }
 
-__global__ void updatePositions(Particle* pars, int len, double deltaTime)
-{
+__global__ void updatePositions(Particle *pars, int len, double deltaTime) {
 
   int i = threadIdx.x + blockDim.x * blockIdx.x;
   if (i >= len || i <= 0) {
@@ -75,15 +74,14 @@ __global__ void updatePositions(Particle* pars, int len, double deltaTime)
   pars[i].vel *= 0.99999f;
 }
 
-int main()
-{
+int main() {
   GUI gui(W, H);
 
   if (!gui.init("Particles")) {
     return -1;
   }
 
-  Particle* particles = new Particle[N];
+  Particle *particles = new Particle[N];
   Particle centers[CN];
 
   Vector pos;
@@ -93,16 +91,13 @@ int main()
     particles[i].pos = pos;
   }
 
-  for (int i = 0; i < CN - 1; i++) {
+  for (int i = 0; i < CN; i++) {
     centers[i].pos.x = (pow(-1, i % 2 + 1) * 250) + 500;
     centers[i].pos.y = (pow(-1, i / 2 + 1) * 250) + 500;
     centers[i].mass = 75;
   }
-
-  centers[4].pos.x = 500;
-  centers[4].pos.y = 500;
-  Particle* d_pars;
-  Particle* c_pars;
+  Particle *d_pars;
+  Particle *c_pars;
 
   cudaMalloc(&d_pars, N * sizeof(Particle));
   cudaMemcpy(d_pars, particles, N * sizeof(Particle), cudaMemcpyHostToDevice);
@@ -137,7 +132,7 @@ int main()
 
     if (sim) {
       updateVelocities<<<gridDim, threadDim>>>(d_pars, c_pars, N, CN,
-          deltaTime);
+                                               deltaTime);
 
       updatePositions<<<gridDim, threadDim>>>(d_pars, N, deltaTime);
 
